@@ -1,0 +1,2711 @@
+---
+title: "Ames, Iowa"
+author: "Sasimi Estate Estate"
+format: 
+  dashboard:
+    scrolling: True
+    nav-buttons:
+      - icon: github
+        href: https://github.com/AhyeongJ/lsbigdata_project1
+---
+
+# Ames, IA 
+<!-- Page 1 배너 이미지 -->
+<div class="banner page1">
+  <img src="ames_banner.png" alt="Ames, IA">
+</div>
+
+## {height:40%}
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns 
+import folium
+import plotly.express as px
+import plotly.graph_objects as go
+
+df = pd.read_csv("data/df.csv")
+m = folium.Map(location = [42, -93],   # 지도 중심 좌표
+               zoom_start = 4,
+               tiles = 'cartodbpositron')      
+folium.Circle(
+    location=[42, -93],  # 원의 중심 좌표
+    radius=150000,  # 반지름 (미터 단위)
+    color='grey',
+    fill=True,
+    fill_color='yellow',
+    opacity = 0.7
+).add_to(m)
+m
+```
+
+
+## {height: 30%}
+```{python}
+# 파일 불러오기
+df=pd.read_csv("data/data_2022.csv")
+df.columns=["label","total","male","female"]
+df=df.iloc[2:20,[0,2,3]]
+df[["male","female"]]=df[["male","female"]].replace(",","", regex=True).astype(int)
+df["male"]=-df["male"]
+#나이 범주 이름 바꾸기 
+age_groups_n = [
+    "Under 5","5 ~","10 ~","15 ~","20 ~","25 ~","30 ~","35 ~","40 ~","45 ~",
+    "50 ~","55 ~","60 ~","65 ~","70 ~","75 ~","80 ~","85 Over"]
+df["label"]=age_groups_n
+#남성, 여성 df melt
+df_melted = df.melt(id_vars='label', var_name='Gender', value_name='Population')
+
+# pyramid plot
+fig = px.bar(df_melted, 
+             x='Population', 
+             y='label', 
+             color='Gender',
+             orientation='h', 
+             labels={'Population': 'Population', 'label': 'Age Group'},
+             color_discrete_map={'male': '#058092', 'female': '#9BD8A4'},
+             )
+
+# layout 
+
+x_custom_tickvals = [-10000, -5000, 0, 5000, 10000] # 10k = 10000 으로? 
+x_custom_ticktext = [10000, 5000, 0, 5000, 10000]
+
+
+
+fig = fig.update_layout(
+     title={'text': "<span style='color:black;font-weight:bold;'>Ames - Male & Female Age</span>", 'x': 0.5, 'xanchor': 'center'},
+      xaxis_title='Population',
+      xaxis=dict(
+            tickvals=x_custom_tickvals,
+            ticktext=x_custom_ticktext,
+            showgrid=True,               
+            gridcolor='LightGray',       
+            gridwidth=0.6
+            ),
+      
+      yaxis_title=' Age (grouped in 5-year)',
+      barmode='overlay',
+      plot_bgcolor='white', 
+      paper_bgcolor='white'  
+)
+
+fig.show()
+```
+##
+* 성별 나이대의 분포에 따르면, 20~24세가 여성 9,422명, 남성 9,288명으로 가장 많이 분포하는 나이대임을 알 수 있다.
+
+* 다음으로 15~19세가 여성 4,825명, 남성 7,613명으로 두 번째로 많이 있음을 알 수 있다. 
+
+* 즉, Ames에는 15~24세 연령대의 인구가 많이 분포한 도시임을 알 수 있다. 
+
+## {height: 30%}
+## {width: 50%}
+
+```{python}
+# Group 별 차트 1  
+# Group 별 차트 1  
+job = pd.read_csv("data/Occupations.csv")
+job = job.query("Year == 2022")
+job_group = job.groupby('Group', as_index = False)\
+               .agg(n = ('Workforce Prev', 'sum'))
+
+# 파이 차트 생성
+fig1 = px.pie(job_group, names='Group', values='n',
+              color_discrete_sequence=px.colors.sequential.Bluyl)
+fig1 = fig1.update_traces(hole=.4, textinfo='percent')
+
+fig1 = fig1.update_layout(
+       title={'text': "<span style='color:black;font-weight:bold;'>Occupations Distribution</span>", 
+              'x': 0.5, 'xanchor': 'center'},
+       annotations=[dict(text='Chart1', x=0.5, y=0.5, font_size=20, showarrow=False)],
+       width=1000,  # 차트의 너비를 키움
+       height=1000,  # 차트의 높이를 키움
+       margin=dict(t=40, b=20, l=20, r=20)  
+)   
+fig1.show()
+```
+
+
+
+```{python}
+job2 = job.query('Group == "Management, Business, Science, & Arts Occupations"')
+subgroup = job2.groupby('Subgroup', as_index = False)\
+               .agg(n = ('Workforce Prev', 'sum'))
+fig2 = px.pie(subgroup, names='Subgroup', values='n',
+              color_discrete_sequence=px.colors.sequential.Bluyl)
+
+fig2 = fig2.update_traces(hole=.4, textinfo='percent')
+
+fig2 = fig2.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Management, Business, Science, & Arts Occupations</span>", 
+             'x': 0.5, 'xanchor': 'center'},
+      annotations=[dict(text='Chart2', x=0.5, y=0.5, font_size=20, showarrow=False)],
+      width=1000,  # 차트의 너비 조정
+      height=1000,  # 차트의 높이 조정
+      margin=dict(t=40, b=20, l=10, r=20)
+)  
+fig2.show()
+```
+
+##
+* 관리, 경영, 과학 예술 직군이 49.1%로 가장 많다.
+* 그 직군들을 더 자세히 살펴보면, 교육, 법률, 사회 복지, 예술, 매체 분야의 직군이 41.3% 로 가장 많다.
+
+# Branch 1
+
+<!-- Page 2 배너 이미지 -->
+<div class="banner page2">
+  <img src="branch1_banner.png" alt="Branch 1">
+</div>
+
+##
+```{python}
+from branca.element import Template, MacroElement
+from folium.plugins import Draw
+df = pd.read_csv("data/df.csv")
+df['Second_Flr_SF'] = np.where(df['Second_Flr_SF'] == 0, "1층", "2층")
+
+#이미지 파일 등록
+def determine_icon_path(sale_price):
+    if sale_price >= 217450:
+        return "img/008.png"
+    elif 165000 <= sale_price < 217450:
+        return "img/009.png"
+    elif 132000 <= sale_price < 165000:
+        return "img/010.png"
+    else:
+        return "img/011.png"
+
+def branch_map(df, branch_number):
+  branch_data = df[df['Branch_Number'] == branch_number]
+  map_center = [branch_data['Latitude'].mean(), branch_data['Longitude'].mean()]
+  m = folium.Map(location=map_center, tiles="CartoDB positron", zoom_start=12)  
+  univ_icon =  folium.CustomIcon("img/univ1.png", icon_size=(50, 50))
+  popup_text2 = "University of Iowa"
+  folium.Marker(
+      location=[42.0267, -93.6465],
+      popup=folium.Popup(popup_text2, max_width=300),
+      icon=univ_icon).add_to(m)
+  draw = Draw(
+    draw_options={
+        'polyline': True,
+        'polygon': True,
+        'circle': True,
+        'marker': True,
+        'circlemarker': False
+    },
+    edit_options={'edit': True, 'remove': True}
+    ).add_to(m)
+
+  for row in branch_data.itertuples():
+    if row.Distance_m / 60 <= 20 :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      도보 : 약 {round(row.Distance_m / 60,1)} 분<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+      """
+    else :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+
+      """
+      # 조건 들어갈 자리
+    icon_path = determine_icon_path(row.Sale_Price) 
+    icon = folium.CustomIcon(icon_path, icon_size=(100, 80))
+    folium.Marker(
+        location=[row.Latitude, row.Longitude],
+        popup=folium.Popup(popup_text, max_width=300),
+        icon=icon
+    ).add_to(m)
+
+    # 범례 추가
+  legend_html = '''
+    <div style="
+    position: fixed; 
+    top: 10px; right: 10px; width: 160px; height: 140px; 
+    border:2px solid grey; z-index:9999; font-size:12px;
+    background-color:white; padding: 10px;
+    ">
+    <b>Branch_1</b><br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #045275; border-radius: 50%;"></div> price_level_1<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #058092; border-radius: 50%;"></div> price_level_2<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #46AEA0; border-radius: 50%;"></div> price_level_3<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #F7FEAE; border-radius: 50%;"></div> price_level_4 
+    </div>
+    '''
+  m.get_root().html.add_child(folium.Element(legend_html))
+  return m
+
+
+branch_map(df,'Branch_1')
+```
+
+## {height:10%}
+## {width: 50%}
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# 데이터 불러오기 및 전처리
+ames = pd.read_csv("data/ames.csv")
+branch1 = ames.query("Branch_Number == 'Branch_1'")
+price_min, price_max = ames['Sale_Price'].min(), ames['Sale_Price'].max()
+bin_count = 40
+bin_size = (price_max - price_min) / bin_count
+
+# 평균 계산
+ames_mean = ames['Sale_Price'].mean()
+branch1_mean = branch1['Sale_Price'].mean()
+
+# 히스토그램 생성
+fig = go.Figure()
+
+# 첫 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=ames['Sale_Price'],
+      name='Ames',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color='#058092',
+                  line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+      )
+))
+
+# 두 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=branch1['Sale_Price'],
+      name='Branch1',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color='#F7FEAE',
+                  line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+      )
+))
+
+# 평균값을 나타내는 선 추가
+fig = fig.update_layout(
+      shapes=[
+          # Ames 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=ames_mean,  # 수직선의 x축 시작점
+              x1=ames_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=0.7,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='blue',
+                  width=2,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          ),
+          # Branch1 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=branch1_mean,  # 수직선의 x축 시작점
+              x1=branch1_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=0.7,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='red',
+                  width=2,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          )
+      ],
+      barmode='overlay',
+      plot_bgcolor='white',  # 배경색 흰색으로 설정
+      xaxis=dict(
+          showgrid=False,  # X축 그리드 제거
+          title='Sale Price'  # X축 제목 설정
+      ),
+      yaxis=dict(
+          showgrid=False,  # Y축 그리드 제거
+          title='Frequency'  # Y축 제목 설정
+      ),
+    title={'text': "<span style='color:black;font-weight:bold;'>House Sale Price</span>", 'x': 0.5, 'xanchor': 'center'},
+)  
+
+# 그래프 표시
+fig.show()
+```
+
+
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch1 = ames.query("Branch_Number == 'Branch_1'")
+# 재범주화 함수 정의
+def recondition(condition):
+    if condition in ['Very_Poor', 'Poor', 'Below_Average']:
+        return 'Bad'
+    elif condition == 'Average':
+        return 'Average'
+    elif condition in ['Above_Average', 'Fair', 'Good']:
+        return 'Good'
+    elif condition in ['Very_Good', 'Excellent']:
+        return 'Very Good'
+
+# 데이터프레임의 Overall_Cond 컬럼 재범주화
+ames['Overall_Cond'] = ames['Overall_Cond'].apply(recondition)
+branch1['Overall_Cond'] = branch1['Overall_Cond'].apply(recondition)
+
+import plotly.graph_objects as go
+
+# GitHub Pages에서 제공하는 아이콘 URL
+icons = {
+    'Very Good': 'https://ahyeongj.github.io/sasimi/verygood_house.png',
+    'Good': 'https://ahyeongj.github.io/sasimi/good_house.png',
+    'Average': 'https://ahyeongj.github.io/sasimi/average_house.png',
+    'Bad': 'https://ahyeongj.github.io/sasimi/bad_house.png'
+}
+
+fig = go.Figure()
+
+x_positions = [0.1, 0.4, 0.7, 1.0]
+y_position = 0.5
+
+categories = ['Bad', 'Average', 'Good', 'Very Good']
+
+for i, category in enumerate(categories):
+    branch1_count = branch1[branch1['Overall_Cond'] == category].shape[0]
+    ames_count = ames[ames['Overall_Cond'] == category].shape[0]
+
+    # 카테고리를 위한 trace 추가
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position - 0.3],
+          mode='text',
+          text=[category],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=20)  # 카테고리 텍스트 크기 설정
+    ))
+
+    # 아이콘 이미지를 추가
+    fig = fig.add_layout_image(
+          dict(
+              source=icons[category],  # GitHub Pages URL
+              xref="x", yref="y",
+              x=x_positions[i], y=y_position,
+              sizex=0.2, sizey=0.2,
+              xanchor="center", yanchor="middle"
+          )
+    )
+
+    # 텍스트 표시를 위한 trace 추가
+    branch1_text = f"<b><span style='color:red;'>{branch1_count}</span></b> / {ames_count}"
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position + 0.25],
+          mode='text',
+          text=[branch1_text],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=18)  # 비율 텍스트 크기 설정
+    ))
+
+
+# 레이아웃 업데이트: 배경색 흰색, 그리드 라인 제거
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch1 - Overall Condition</span>", 'x': 0.5, 'xanchor': 'center'},
+      xaxis=dict(
+          visible=False,
+          showgrid=False,  # X축 그리드 제거
+          zeroline=False,  # X축 제로라인 제거
+          range=[-0.1, 1.2]
+      ),
+      yaxis=dict(
+          visible=False,
+          showgrid=False,  # Y축 그리드 제거
+          zeroline=False  # Y축 제로라인 제거
+      ),
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white', # 전체 배경색 흰색
+      margin=dict(l=30, r=30, t=55, b=25)  # 여백 조정
+)
+
+# 그래프 표시
+fig.show()
+```
+
+##
+* Ames 전체는 **125k~142.9k**의 가격대의 집이 **422**개로 가장 많다.
+
+* Branch1의 경우 Ames의 평균보다 높은 **179k~196.6k** 가격대의 집을 가장 많이 보유하고 있다.
+
+* **평균(Average)** 수준의 Overall Condition을 가진 집이 **628**개로 가장 많이 보유하고 있다. 
+
+
+## {heihgt:25%}
+## {width: 50%}
+```{python}
+#방개수
+all_branch=ames.copy()
+all_branch["Branch_Number"]="Branch_all"
+all_branch=all_branch[["TotRms_AbvGrd","Branch_Number"]].groupby("TotRms_AbvGrd").count()
+all_branch_mean=all_branch["Branch_Number"]/all_branch["Branch_Number"].sum()
+all_branch_mean=all_branch_mean.to_frame()
+
+# 브랜치 1 
+branch=ames.query('Branch_Number=="Branch_1"')[["TotRms_AbvGrd","Branch_Number"]]
+branch=branch.groupby("TotRms_AbvGrd").count() #count 에서 mean으로 변경
+branch_mean=branch["Branch_Number"]/branch["Branch_Number"].sum()
+branch_mean=branch_mean.to_frame()
+branch_mean["Branch_Number"]=-branch_mean["Branch_Number"]
+
+df_room_mean=pd.concat([branch_mean,all_branch_mean]).reset_index(drop=False)
+df_room_mean["branch_num"]=["Branch_1"] * len(branch_mean) + ["Branch_all"]* len(all_branch_mean)
+
+# 14번 행 추가 (빈 값)
+new=pd.DataFrame({"TotRms_AbvGrd":[14], "Branch_Number":[0],"branch_num":["Branch_all"]})
+df_room_mean=pd.concat([df_room_mean,new])
+
+# pyramid plot branch 1 과 전체의 방 개수 : mean
+fig = px.bar(df_room_mean, 
+             x='Branch_Number', 
+             y='TotRms_AbvGrd', 
+             color='branch_num',
+             orientation='h', 
+             labels={'Branch_Number': 'Branch_Count', 'TotRms_AbvGrd': 'total_room_num'},
+             color_discrete_map={'Branch_1': '#9BD8A4', 'Branch_all': '#058092'})
+
+fig = fig.update_traces(textfont=dict(size=7))
+
+# x축 값을 원하는 숫자로 수정
+custom_tickvals = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3] 
+custom_ticktext = [0.3, 0.2, 0.1, 0, 0.1, 0.2, 0.3]  
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch1 vs Ames - Room : Ratio </span>", 'x': 0.5, 'xanchor': 'center'},
+      xaxis_title='Branch 1 vs Ames',
+      yaxis_title='Room ratio',
+      xaxis=dict(
+          tickvals=custom_tickvals,  # 커스텀 tickvals 설정
+          ticktext=custom_ticktext,
+          range=[-0.33, 0.33],
+          showgrid=True,
+          gridcolor='lightgray'
+      ),
+      yaxis=dict(
+          showticklabels=False 
+      ),
+      barmode='overlay',
+      plot_bgcolor='white', 
+      paper_bgcolor='white' 
+)
+fig = fig.add_scatter(x=[0]*len(df_room_mean), 
+                      y=df_room_mean['TotRms_AbvGrd'], 
+                      mode='text', 
+                      text=df_room_mean['TotRms_AbvGrd'], 
+                      textposition="middle center"
+                      )
+fig.show()
+``` 
+
+### Row {.tabset}
+```{python}
+#| title: branch_1
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.query('Branch_Number=="Branch_1"')\
+    .groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch1 - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+fig = fig.update_traces(
+      marker=dict(
+          opacity=1
+      ),
+      selector=dict(mode='markers'))
+
+fig.show()
+```
+
+
+```{python}
+#| title: Ames
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Ames - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range' 
+)
+fig = fig.update_traces(
+      marker=dict(
+          opacity=1
+      ),
+      selector=dict(mode='markers'))
+
+fig.show()
+```
+
+##
+* Ames와 branch_1의 방 개수(비율)를 비교했을 때      
+
+* branch_1의 경우 방 개수가 7,8,9,10,11인 집이 Ames보다 많이 위치하고 있음이 두드러진다.  
+
+* 또한 branch_1에 위치한 집들 중 2000년대에 건축되고 2000년대에 리모델링한 집이 **463**개로 압도적으로 많다. 
+
+* 다음으로 1990년대에 건축되고 1990년대에 리모델링한 집이 **142**개로 두번째로 많다.
+
+* 비교적 최신에 건축되고 리모델링된 집의 개수가 많다. 
+
+
+
+## {height: 30%}
+```{python}
+tot_1st = ames.query('Second_Flr_SF == False') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_1st = tot_1st['Second_Flr_SF'][0]
+
+tot_2nd = ames.query('Second_Flr_SF == True') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_2nd = tot_2nd['Second_Flr_SF'][0]
+
+
+b1_1st = ames.query('Branch_Number == "Branch_1" & Second_Flr_SF == False') \
+               .agg(count =('Branch_Number','count'))
+b1_1st = b1_1st['Branch_Number'][0]
+
+b1_2nd = ames.query('Branch_Number == "Branch_1" & Second_Flr_SF == True') \
+               .agg(count =('Branch_Number','count'))
+b1_2nd = b1_2nd['Branch_Number'][0]
+
+b1_1 = f"{b1_1st} / {tot_1st}"
+b1_2 = f"{b1_2nd} / {tot_2nd}"
+```
+
+
+## Row 
+
+```{python}
+#| content: valuebox
+#| title: "1st Floor in Branch 1"
+dict(
+  icon = "house",
+  color = "#F7FEAE",
+  value = b1_1
+)
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "2nd Floor in Branch 1"
+dict(
+  icon = "houses",
+  color = "#F7FEAE",
+  value = b1_2
+)
+```
+
+## Row 
+* Branch 1에 속한 1층 집의 개수는 **318**개이고, 2층 집의 개수는 **352**개이다. 
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Distance_m의 전체 평균 계산
+distance_mean = ames['Distance_m'].mean()
+
+# Branch_1의 평균 Distance_m 계산
+branch_1_mean = ames.query('Branch_Number == "Branch_1"')['Distance_m'].mean()
+
+# 막대그래프 그리기
+fig = go.Figure()
+
+fig = fig.add_trace(go.Bar(
+    x=[distance_mean, branch_1_mean],  # x축에 평균값을 설정
+    y=['Distance Mean', 'Branch_1 Mean'],  # y축에 레이블을 설정
+    orientation='h',  # 가로 막대그래프 설정
+    marker=dict(color=['#058092', '#9BD8A4']),  # 막대 색상 설정
+    text=[f"{distance_mean:,.2f}", f"{branch_1_mean:,.2f}"],  # 텍스트로 값 설정
+    textposition='inside',  # 텍스트 위치를 막대 안으로 설정
+    insidetextanchor='middle',  # 텍스트를 막대 가운데 정렬
+    textfont=dict(size=20)  # 텍스트 크기 설정
+))
+
+# 이모지 추가 (각각의 막대 끝에)
+fig = fig.add_annotation(
+    x=distance_mean,  # Distance Mean 막대의 끝에 이모지를 추가
+    y='Distance Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+fig = fig.add_annotation(
+    x=branch_1_mean,  # Branch_1 Mean 막대의 끝에 이모지를 추가
+    y='Branch_1 Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+# 그래프 레이아웃 설정
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Distance from ISU</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Distance (m)',
+    yaxis_title='',
+    yaxis=dict(autorange="reversed"),  # y축 순서 뒤집기 (가로 막대그래프일 때)
+    bargap=0.6,  # 막대 사이 간격 설정
+    plot_bgcolor='white',  # 그래프 배경색을 흰색으로 설정
+    paper_bgcolor='white',  # 전체 배경색을 흰색으로 설정
+    margin=dict(t=100)  # 상단 여백을 100으로 설정
+)
+
+# 그래프 보여주기
+fig.show()
+```
+
+## Row
+* IOWA 주립 대학교와 Ames 도시의 주택이 떨어진 거리의 평균은 **5.57km**이다.
+
+* Branch 1 지역의 주택이 대학교와 떨어진 평균 거리는 **5.93km**이다.
+
+* Ames 도시 주택에 비해 평균 **363m** 더 떨어진 지역이다.
+
+
+## {width: 50%}
+![](img/taehyun_1.png)
+
+## Row 
+* branch_1  
+* overall condition이 average인 집이 90% 이상이다. 
+* 최근에 지어진 집이 많다. 
+
+
+# Branch 2
+
+<!-- Page 3 배너 이미지 -->
+<div class="banner page3">
+  <img src="branch2_banner.png" alt="Branch 2 Banner">
+</div>
+
+##
+```{python}
+def determine_icon_path(sale_price):
+    if sale_price >= 217450:
+        return "img/008.png"
+    elif 165000 <= sale_price < 217450:
+        return "img/009.png"
+    elif 132000 <= sale_price < 165000:
+        return "img/010.png"
+    else:
+        return "img/011.png"
+        
+def branch_map(df, branch_number):
+  branch_data = df[df['Branch_Number'] == branch_number]
+  map_center = [branch_data['Latitude'].mean(), branch_data['Longitude'].mean()]
+  m = folium.Map(location=map_center, tiles="CartoDB positron", zoom_start=12)  
+  univ_icon =  folium.CustomIcon("img/univ1.png", icon_size=(50, 50))
+  popup_text2 = "University of Iowa"
+  folium.Marker(
+      location=[42.0267, -93.6465],
+      popup=folium.Popup(popup_text2, max_width=300),
+      icon=univ_icon).add_to(m)
+  draw = Draw(
+    draw_options={
+        'polyline': True,
+        'polygon': True,
+        'circle': True,
+        'marker': True,
+        'circlemarker': False
+    },
+    edit_options={'edit': True, 'remove': True}
+    ).add_to(m)
+
+  for row in branch_data.itertuples():
+    if row.Distance_m / 60 <= 20 :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      도보 : 약 {round(row.Distance_m / 60,1)} 분<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+      """
+    else :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+
+      """
+      # 조건 들어갈 자리
+    icon_path = determine_icon_path(row.Sale_Price) 
+    icon = folium.CustomIcon(icon_path, icon_size=(100, 80))
+    folium.Marker(
+        location=[row.Latitude, row.Longitude],
+        popup=folium.Popup(popup_text, max_width=300),
+        icon=icon
+    ).add_to(m)
+
+    # 범례 추가
+  legend_html = '''
+    <div style="
+    position: fixed; 
+    top: 10px; right: 10px; width: 160px; height: 140px; 
+    border:2px solid grey; z-index:9999; font-size:12px;
+    background-color:white; padding: 10px;
+    ">
+    <b>Branch_2</b><br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #045275; border-radius: 50%;"></div> price_level_1<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #058092; border-radius: 50%;"></div> price_level_2<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #46AEA0; border-radius: 50%;"></div> price_level_3<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #F7FEAE; border-radius: 50%;"></div> price_level_4 
+    </div>
+    '''
+  m.get_root().html.add_child(folium.Element(legend_html))
+  return m
+
+
+branch_map(df,'Branch_2')
+```
+
+## {height:30%}
+## {width: 50%}
+
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch2 = ames.query("Branch_Number == 'Branch_2'")
+price_min, price_max = ames['Sale_Price'].min(), ames['Sale_Price'].max()
+bin_count = 40
+bin_size = (price_max - price_min) / bin_count
+
+ames_mean = ames['Sale_Price'].mean()
+branch2_mean = branch2['Sale_Price'].mean()
+fig = go.Figure()
+# 첫 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=ames['Sale_Price'],
+      name='Ames',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color='#058092',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 두 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=branch2['Sale_Price'],
+      name='Branch2',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color= '#F7FEAE',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 히스토그램을 겹쳐서 표시하기 위해 바 형태를 겹쳐서 그리도록 설정
+fig = fig.update_layout(
+      shapes=[
+          # Ames 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=ames_mean,  # 수직선의 x축 시작점
+              x1=ames_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='blue',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          ),
+          # Branch2 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=branch2_mean,  # 수직선의 x축 시작점
+              x1=branch2_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='red',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          )
+      ],
+      barmode='overlay',
+      plot_bgcolor='white',  # 배경색 흰색으로 설정
+      xaxis=dict(
+          showgrid=False,  # X축 그리드 제거
+          title='Sale Price'  # X축 제목 설정
+      ),
+      yaxis=dict(
+          showgrid=False,  # Y축 그리드 제거
+          title='Frequency'  # Y축 제목 설정
+      ),
+      title={'text': "<span style='color:black;font-weight:bold;'>House Sale Price</span>", 'x': 0.5, 'xanchor': 'center'},
+
+)  
+# 그래프 표시
+fig.show()
+```
+
+
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch2 = ames.query("Branch_Number == 'Branch_2'")
+# 재범주화 함수 정의
+def recondition(condition):
+    if condition in ['Very_Poor', 'Poor', 'Below_Average']:
+        return 'Bad'
+    elif condition == 'Average':
+        return 'Average'
+    elif condition in ['Above_Average', 'Fair', 'Good']:
+        return 'Good'
+    elif condition in ['Very_Good', 'Excellent']:
+        return 'Very Good'
+
+# 데이터프레임의 Overall_Cond 컬럼 재범주화
+ames['Overall_Cond'] = ames['Overall_Cond'].apply(recondition)
+branch2['Overall_Cond'] = branch2['Overall_Cond'].apply(recondition)
+
+import plotly.graph_objects as go
+
+# GitHub Pages에서 제공하는 아이콘 URL
+icons = {
+    'Very Good': 'https://ahyeongj.github.io/sasimi/verygood_house.png',
+    'Good': 'https://ahyeongj.github.io/sasimi/good_house.png',
+    'Average': 'https://ahyeongj.github.io/sasimi/average_house.png',
+    'Bad': 'https://ahyeongj.github.io/sasimi/bad_house.png'
+}
+
+fig = go.Figure()
+
+x_positions = [0.1, 0.4, 0.7, 1.0]
+y_position = 0.5
+
+categories = ['Bad', 'Average', 'Good', 'Very Good']
+
+for i, category in enumerate(categories):
+    branch2_count = branch2[branch2['Overall_Cond'] == category].shape[0]
+    ames_count = ames[ames['Overall_Cond'] == category].shape[0]
+
+    # 카테고리를 위한 trace 추가
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position - 0.3],
+          mode='text',
+          text=[category],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=20)  # 카테고리 텍스트 크기 설정
+    ))
+
+    # 아이콘 이미지를 추가
+    fig = fig.add_layout_image(
+          dict(
+              source=icons[category],  # GitHub Pages URL
+              xref="x", yref="y",
+              x=x_positions[i], y=y_position,
+              sizex=0.2, sizey=0.2,
+              xanchor="center", yanchor="middle"
+          )
+    )
+
+    # 텍스트 표시를 위한 trace 추가
+    branch2_text = f"<b><span style='color:red;'>{branch2_count}</span></b> / {ames_count}"
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position + 0.25],
+          mode='text',
+          text=[branch2_text],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=18)  # 비율 텍스트 크기 설정
+    ))
+
+# 레이아웃 업데이트: 배경색 흰색, 그리드 라인 제거
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch2 - Overall Condition</span>", 'x': 0.5, 'xanchor': 'center'},
+      xaxis=dict(
+          visible=False,
+          showgrid=False,  # X축 그리드 제거
+          zeroline=False,  # X축 제로라인 제거
+          range=[-0.1, 1.2]
+      ),
+      yaxis=dict(
+          visible=False,
+          showgrid=False,  # Y축 그리드 제거
+          zeroline=False  # Y축 제로라인 제거
+      ),
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white', # 전체 배경색 흰색
+      margin=dict(l=30, r=30, t=55, b=25)  # 여백 조정
+)
+
+# 그래프 표시
+fig.show()
+```
+
+##
+* Branch2의 경우 Ames의 평균보다 낮은 **125k~142.9k** 가격대의 집을 가장 많이 보유하고 있다.
+
+* **좋음(Good)** 수준의 Overall Condition을 가진 집이 **476**개로 가장 많이 보유하고 있다. 
+
+
+## {heihgt:30%}
+## {width: 50%}
+
+```{python}
+#방개수 - 브랜치 2
+all_branch=ames.copy()
+all_branch["Branch_Number"]="Branch_all"
+all_branch=all_branch[["TotRms_AbvGrd","Branch_Number"]].groupby("TotRms_AbvGrd").count()
+all_branch_mean=all_branch["Branch_Number"]/all_branch["Branch_Number"].sum()
+all_branch_mean=all_branch_mean.to_frame()
+# 브랜치 2
+branch2=ames.query('Branch_Number=="Branch_2"')[["TotRms_AbvGrd","Branch_Number"]].groupby("TotRms_AbvGrd").count()
+branch2_mean=branch2["Branch_Number"]/branch2["Branch_Number"].sum()
+branch2_mean=branch2_mean.to_frame()
+branch2_mean["Branch_Number"]=-branch2_mean["Branch_Number"]
+
+df_room_mean=pd.concat([branch2_mean,all_branch_mean]).reset_index(drop=False)
+df_room_mean["branch_num"]=["Branch_2"] * len(branch2_mean) + ["Branch_all"]* len(all_branch_mean)
+# 14번 행 추가 (빈 값)
+new=pd.DataFrame({"TotRms_AbvGrd":[14], "Branch_Number":[0],"branch_num":["Branch_all"]})
+df_room_mean=pd.concat([df_room_mean,new])
+
+# pyramid plot branch 2 과 전체의 방 개수 : mean
+fig = px.bar(df_room_mean, 
+             x='Branch_Number', 
+             y='TotRms_AbvGrd', 
+             color='branch_num',
+             orientation='h', 
+             labels={'Branch_Number': 'Branch_Count', 'TotRms_AbvGrd': 'total_room_num'},
+             color_discrete_map={'Branch_2': '#9BD8A4', 'Branch_all': '#058092'})
+
+fig = fig.update_traces(textfont=dict(size=7))
+
+# x축 값을 원하는 숫자로 수정
+custom_tickvals = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3] 
+custom_ticktext = [0.3, 0.2, 0.1, 0, 0.1, 0.2, 0.3]  
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch2 vs Ames - Room : Ratio</span>", 'x': 0.5, 'xanchor': 'center'},
+
+      xaxis_title='Branch 2 vs Ames',
+      yaxis_title='Room ratio',
+      xaxis=dict(
+          tickvals=custom_tickvals,  # 커스텀 tickvals 설정
+          ticktext=custom_ticktext,
+          range=[-0.33, 0.33],
+          showgrid=True,
+          gridcolor='lightgray'
+      ),
+      yaxis=dict(
+          showticklabels=False  # y축의 범례 숨기기
+      ),
+      barmode='overlay',
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white' # 전체 배경색 흰색
+)
+fig = fig.add_scatter(x=[0]*len(df_room_mean), 
+                      y=df_room_mean['TotRms_AbvGrd'], 
+                      mode='text', 
+                      text=df_room_mean['TotRms_AbvGrd'], 
+                      textposition="middle center"
+                      )
+fig.show()
+```
+
+   
+
+### Row {.tabset}
+```{python}
+#| title: branch_2
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.query('Branch_Number=="Branch_2"')\
+    .groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch2 - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+
+fig = fig.update_traces(
+      marker=dict(
+          opacity=1
+      ),
+      selector=dict(mode='markers'))
+
+fig.show()
+```
+
+
+```{python}
+#| title: Ames
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Ames - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+fig = fig.update_traces(
+      marker=dict(
+          opacity=1
+      ),
+      selector=dict(mode='markers'))
+
+fig.show()
+```
+##  
+* Ames와 branch_2의 방 개수(비율)를 비교했을 때,  
+
+* branch_2의 경우 방이 4, 5, 6 개인 집이 전체보다 많이 위치하고 있음을 알 수 있다.  
+
+* branch_2에 위치한 집들 중 1960년대에 건축되고 1960년대에 리모델링한 집이 **144**개로 가장 많음을 알 수 있다. 
+
+* 다음으로 1950년대에 건축되고 1950년대에 리모델링한 집이 **135**개로 두번쨰로 많다.
+
+* 세번째로 1970년대에 건축되고 1970년대에 리모델링한 집이 **124** 개 라는 수치를 보인다. 
+
+* branch_1 에 비해서 분산된 분포를 보이고 있다. 
+
+
+## {height: 10%}
+```{python}
+tot_1st = ames.query('Second_Flr_SF == False') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_1st = tot_1st['Second_Flr_SF'][0]
+
+tot_2nd = ames.query('Second_Flr_SF == True') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_2nd = tot_2nd['Second_Flr_SF'][0]
+
+
+b2_1st = ames.query('Branch_Number == "Branch_2" & Second_Flr_SF == False') \
+               .agg(count =('Branch_Number','count'))
+b2_1st = b2_1st['Branch_Number'][0]
+
+b2_2nd = ames.query('Branch_Number == "Branch_2" & Second_Flr_SF == True') \
+               .agg(count =('Branch_Number','count'))
+b2_2nd = b2_2nd['Branch_Number'][0]
+
+b2_1 = f"{b2_1st} / {tot_1st}"
+b2_2 = f"{b2_2nd} / {tot_2nd}"
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "1st Floor in Branch 2"
+dict(
+  icon = "house",
+  color = "#F7FEAE",
+  value = b2_1
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "2nd Floor in Branch 2"
+dict(
+  icon = "houses",
+  color = "#F7FEAE",
+  value = b2_2
+)
+```
+
+## Row 
+* Branch 2에 속한 1층 집의 개수는 **518**개이고, 2층 집의 개수는 **348**개이다.
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Distance_m의 전체 평균 계산
+distance_mean = ames['Distance_m'].mean()
+
+# Branch_2의 평균 Distance_m 계산
+branch_2_mean = ames.query('Branch_Number == "Branch_2"')['Distance_m'].mean()
+
+# 막대그래프 그리기
+fig = go.Figure()
+
+fig = fig.add_trace(go.Bar(
+    x=[distance_mean, branch_2_mean],  # x축에 평균값을 설정
+    y=['Distance Mean', 'Branch_2 Mean'],  # y축에 레이블을 설정
+    orientation='h',  # 가로 막대그래프 설정
+    marker=dict(color=['#058092', '#9BD8A4']),  # 막대 색상 설정
+    text=[f"{distance_mean:,.2f}", f"{branch_2_mean:,.2f}"],  # 텍스트로 값 설정
+    textposition='inside',  # 텍스트 위치를 막대 안으로 설정
+    insidetextanchor='middle',  # 텍스트를 막대 가운데 정렬
+    textfont=dict(size=20)  # 텍스트 크기 설정
+))
+
+# 이모지 추가 (각각의 막대 끝에)
+fig = fig.add_annotation(
+    x=distance_mean,  # Distance Mean 막대의 끝에 이모지를 추가
+    y='Distance Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+fig = fig.add_annotation(
+    x=branch_2_mean,  # Branch_2 Mean 막대의 끝에 이모지를 추가
+    y='Branch_2 Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+# 그래프 레이아웃 설정
+fig = fig.update_layout(
+        title={'text': "<span style='color:black;font-weight:bold;'>Distance from ISU</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Distance (m)',
+    yaxis_title='',
+    yaxis=dict(autorange="reversed"),  # y축 순서 뒤집기 (가로 막대그래프일 때)
+    bargap=0.6,  # 막대 사이 간격 설정
+    plot_bgcolor='white',  # 그래프 배경색을 흰색으로 설정
+    paper_bgcolor='white',  # 전체 배경색을 흰색으로 설정
+    margin=dict(t=100)  # 상단 여백을 100으로 설정
+)
+
+# 그래프 보여주기
+fig.show()
+```
+
+## Row
+* IOWA 주립 대학교와 Ames 도시의 주택이 떨어진 거리의 평균은 **5.57km** 이다.
+
+* Branch 2 지역의 주택이 대학교와 떨어진 평균 거리는 **3.41km**이다.
+
+* Ames 도시 주택에 비해 평균 **2.16km** 더 가까운 지역이다.
+
+
+## {width: 50%}
+![](img/yonggyu_2.png)
+
+## Row 
+* branch_2  
+* 전체 가격 평균보다 branch2 가격 평균이 더 낮다. -> 비교적 싼 집이 많다고 할 수 있다. 
+* overall condition이 good인 집이 50% 이상이다. 
+* 집들이 평균 거리보다 가깝다. 
+
+
+
+# Branch 3 
+
+<!-- Page 1 배너 이미지 -->
+<div class="banner page4">
+  <img src="branch3_banner.png" alt="Branch 3 Banner">
+</div>
+
+##
+```{python}
+def determine_icon_path(sale_price):
+    if sale_price >= 217450:
+        return "img/008.png"
+    elif 165000 <= sale_price < 217450:
+        return "img/009.png"
+    elif 132000 <= sale_price < 165000:
+        return "img/010.png"
+    else:
+        return "img/011.png"
+def branch_map(df, branch_number):
+  branch_data = df[df['Branch_Number'] == branch_number]
+  map_center = [branch_data['Latitude'].mean(), branch_data['Longitude'].mean()]
+  m = folium.Map(location=map_center, tiles="CartoDB positron", zoom_start=12)  
+  univ_icon =  folium.CustomIcon("img/univ1.png", icon_size=(50, 50))
+  popup_text2 = "University of Iowa"
+  folium.Marker(
+      location=[42.0267, -93.6465],
+      popup=folium.Popup(popup_text2, max_width=300),
+      icon=univ_icon).add_to(m)
+  draw = Draw(
+    draw_options={
+        'polyline': True,
+        'polygon': True,
+        'circle': True,
+        'marker': True,
+        'circlemarker': False
+    },
+    edit_options={'edit': True, 'remove': True}
+    ).add_to(m)
+
+  for row in branch_data.itertuples():
+    if row.Distance_m / 60 <= 20 :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      도보 : 약 {round(row.Distance_m / 60,1)} 분<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+      """
+    else :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+
+      """
+      # 조건 들어갈 자리
+    icon_path = determine_icon_path(row.Sale_Price) 
+    icon = folium.CustomIcon(icon_path, icon_size=(100, 80))
+    folium.Marker(
+        location=[row.Latitude, row.Longitude],
+        popup=folium.Popup(popup_text, max_width=300),
+        icon=icon
+    ).add_to(m)
+
+    # 범례 추가
+  legend_html = '''
+    <div style="
+    position: fixed; 
+    top: 10px; right: 10px; width: 160px; height: 140px; 
+    border:2px solid grey; z-index:9999; font-size:12px;
+    background-color:white; padding: 10px;
+    ">
+    <b>Branch_3</b><br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #045275; border-radius: 50%;"></div> price_level_1<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #058092; border-radius: 50%;"></div> price_level_2<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #46AEA0; border-radius: 50%;"></div> price_level_3<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #F7FEAE; border-radius: 50%;"></div> price_level_4 
+    </div>
+    
+    '''
+  m.get_root().html.add_child(folium.Element(legend_html))
+  return m
+
+
+branch_map(df,'Branch_3')
+```
+
+## {height:30%}
+## {width: 50%}
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch3 = ames.query("Branch_Number == 'Branch_3'")
+price_min, price_max = ames['Sale_Price'].min(), ames['Sale_Price'].max()
+bin_count = 40
+bin_size = (price_max - price_min) / bin_count
+
+ames_mean = ames['Sale_Price'].mean()
+branch3_mean = branch3['Sale_Price'].mean()
+fig = go.Figure()
+# 첫 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=ames['Sale_Price'],
+      name='Ames',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color='#058092',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 두 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=branch3['Sale_Price'],
+      name='Branch3',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color= '#F7FEAE',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 히스토그램을 겹쳐서 표시하기 위해 바 형태를 겹쳐서 그리도록 설정
+fig = fig.update_layout(
+      shapes=[
+          # Ames 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=ames_mean,  # 수직선의 x축 시작점
+              x1=ames_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='blue',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          ),
+          # Branch1 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=branch3_mean,  # 수직선의 x축 시작점
+              x1=branch3_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='red',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          )
+      ],
+      barmode='overlay',
+      plot_bgcolor='white',  # 배경색 흰색으로 설정
+      xaxis=dict(
+          showgrid=False,  # X축 그리드 제거
+          title='Sale Price'  # X축 제목 설정
+      ),
+      yaxis=dict(
+          showgrid=False,  # Y축 그리드 제거
+          title='Frequency'  # Y축 제목 설정
+      ),
+      title={'text': "<span style='color:black;font-weight:bold;'>House Sale Price</span>", 'x': 0.5, 'xanchor': 'center'},
+
+)  
+# 그래프 표시
+fig.show()
+```
+
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch3 = ames.query("Branch_Number == 'Branch_3'")
+# 재범주화 함수 정의
+def recondition(condition):
+    if condition in ['Very_Poor', 'Poor', 'Below_Average']:
+        return 'Bad'
+    elif condition == 'Average':
+        return 'Average'
+    elif condition in ['Above_Average', 'Fair', 'Good']:
+        return 'Good'
+    elif condition in ['Very_Good', 'Excellent']:
+        return 'Very Good'
+
+# 데이터프레임의 Overall_Cond 컬럼 재범주화
+ames['Overall_Cond'] = ames['Overall_Cond'].apply(recondition)
+branch3['Overall_Cond'] = branch3['Overall_Cond'].apply(recondition)
+
+import plotly.graph_objects as go
+
+# GitHub Pages에서 제공하는 아이콘 URL
+icons = {
+    'Very Good': 'https://ahyeongj.github.io/sasimi/verygood_house.png',
+    'Good': 'https://ahyeongj.github.io/sasimi/good_house.png',
+    'Average': 'https://ahyeongj.github.io/sasimi/average_house.png',
+    'Bad': 'https://ahyeongj.github.io/sasimi/bad_house.png'
+}
+
+fig = go.Figure()
+
+x_positions = [0.1, 0.4, 0.7, 1.0]
+y_position = 0.5
+
+categories = ['Bad', 'Average', 'Good', 'Very Good']
+
+for i, category in enumerate(categories):
+    branch3_count = branch3[branch3['Overall_Cond'] == category].shape[0]
+    ames_count = ames[ames['Overall_Cond'] == category].shape[0]
+
+    # 카테고리를 위한 trace 추가
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position - 0.3],
+          mode='text',
+          text=[category],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=20)  # 카테고리 텍스트 크기 설정
+    ))
+
+    # 아이콘 이미지를 추가
+    fig = fig.add_layout_image(
+          dict(
+              source=icons[category],  # GitHub Pages URL
+              xref="x", yref="y",
+              x=x_positions[i], y=y_position,
+              sizex=0.2, sizey=0.2,
+              xanchor="center", yanchor="middle"
+          )
+    )
+
+    # 텍스트 표시를 위한 trace 추가
+    branch3_text = f"<b><span style='color:red;'>{branch3_count}</span></b> / {ames_count}"
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position + 0.25],
+          mode='text',
+          text=[branch3_text],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=18)  # 비율 텍스트 크기 설정
+    ))
+
+# 레이아웃 업데이트: 배경색 흰색, 그리드 라인 제거
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Branch3 - Overall Condition</span>", 'x': 0.5, 'xanchor': 'center'},
+
+      xaxis=dict(
+          visible=False,
+          showgrid=False,  # X축 그리드 제거
+          zeroline=False,  # X축 제로라인 제거
+          range=[-0.1, 1.2]
+      ),
+      yaxis=dict(
+          visible=False,
+          showgrid=False,  # Y축 그리드 제거
+          zeroline=False  # Y축 제로라인 제거
+      ),
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white', # 전체 배경색 흰색
+      margin=dict(l=30, r=30, t=55, b=25)  # 여백 조정
+)
+
+# 그래프 표시
+fig.show()
+```
+
+##
+* Branch3의 경우 Ames의 평균보다 낮은 **125k~142.9k** 가격대의 집을 가장 많이 보유하고 있다.
+
+* **평균(Average)** 수준의 Overall Condition을 가진 집이 **451**개로 가장 많이 보유하고 있다. 
+
+## {heihgt:30%}
+## {width: 50%}
+```{python}
+#방개수 branch 3
+all_branch=ames.copy()
+all_branch["Branch_Number"]="Branch_all"
+all_branch=all_branch[["TotRms_AbvGrd","Branch_Number"]].groupby("TotRms_AbvGrd").count()
+all_branch_mean=all_branch["Branch_Number"]/all_branch["Branch_Number"].sum()
+all_branch_mean=all_branch_mean.to_frame()
+# 브랜치 3
+branch=ames.query('Branch_Number=="Branch_3"')[["TotRms_AbvGrd","Branch_Number"]]
+branch=branch.groupby("TotRms_AbvGrd").count() #count 에서 mean으로 변경
+
+branch_mean=branch["Branch_Number"]/branch["Branch_Number"].sum()
+branch_mean=branch_mean.to_frame()
+branch_mean["Branch_Number"]=-branch_mean["Branch_Number"]
+
+df_room_mean=pd.concat([branch_mean,all_branch_mean]).reset_index(drop=False)
+df_room_mean["branch_num"]=["Branch_3"] * len(branch_mean) + ["Branch_all"]* len(all_branch_mean)
+
+# 14번 행 추가 (빈 값)
+new=pd.DataFrame({"TotRms_AbvGrd":[14], "Branch_Number":[0],"branch_num":["Branch_all"]})
+df_room_mean=pd.concat([df_room_mean,new])
+
+# pyramid plot branch 1 과 전체의 방 개수 : mean
+fig = px.bar(df_room_mean, 
+             x='Branch_Number', 
+             y='TotRms_AbvGrd', 
+             color='branch_num',
+             orientation='h', 
+             labels={'Branch_Number': 'Branch_Count', 'TotRms_AbvGrd': 'total_room_num'},
+             color_discrete_map={'Branch_3': '#9BD8A4', 'Branch_all': '#058092'})
+
+fig = fig.update_traces(textfont=dict(size=7))
+
+# x축 값을 원하는 숫자로 수정
+custom_tickvals = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3] 
+custom_ticktext = [0.3, 0.2, 0.1, 0, 0.1, 0.2, 0.3]  
+
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Branch3 vs Ames - Room : Ratio</span>", 'x': 0.5, 'xanchor': 'center'},
+
+      xaxis_title='Branch 3 vs Ames',
+      yaxis_title='Room ratio',
+      xaxis=dict(
+          tickvals=custom_tickvals,  # 커스텀 tickvals 설정
+          ticktext=custom_ticktext,
+          range=[-0.33, 0.33],
+          showgrid=True,
+          gridcolor='lightgray'
+      ),
+      yaxis=dict(
+          showticklabels=False  # y축의 범례 숨기기
+      ),
+      barmode='overlay',
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white' # 전체 배경색 흰색
+)
+fig = fig.add_scatter(x=[0]*len(df_room_mean), 
+                      y=df_room_mean['TotRms_AbvGrd'], 
+                      mode='text', 
+                      text=df_room_mean['TotRms_AbvGrd'], 
+                      textposition="middle center"
+                      )
+fig.show()
+```     
+
+
+### Row {.tabset}
+```{python}
+#| title: branch_3
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.query('Branch_Number=="Branch_3"')\
+    .groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Branch3 - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+
+    xaxis_title='year_built',
+    yaxis_title='year_remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  
+)
+fig=fig.update_traces(
+    marker=dict(
+        opacity=1
+    ),
+    selector=dict(mode='markers'))
+
+
+
+fig.show()
+```
+
+
+```{python}
+#| title: Ames
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Ames - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+fig=fig.update_traces(
+    marker=dict(
+        opacity=1
+    ),
+    selector=dict(mode='markers'))
+
+
+fig.show()
+```
+
+##
+* Ames와 branch_3의 방 개수(비율)를 비교했을 때              
+
+* 특히 branch_3의 경우 방이 5,6개인 집이 전체보다 많이 위치하고 있음을 알 수 있다.
+
+* branch_3에 위치한 집들 중 2000년대에 건축되고 2000년대에 리모델링한 집이 **218**개로 가장 많음을 알 수 있다. 
+
+* 다음으로 1990년대에 건축되고 1990년대에 리모델링한 집이 **105**개로 두번쨰로 많다.
+
+
+## {height: 10%}
+```{python}
+tot_1st = ames.query('Second_Flr_SF == False') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_1st = tot_1st['Second_Flr_SF'][0]
+
+tot_2nd = ames.query('Second_Flr_SF == True') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_2nd = tot_2nd['Second_Flr_SF'][0]
+
+
+b3_1st = ames.query('Branch_Number == "Branch_3" & Second_Flr_SF == False') \
+               .agg(count =('Branch_Number','count'))
+b3_1st = b3_1st['Branch_Number'][0]
+
+b3_2nd = ames.query('Branch_Number == "Branch_3" & Second_Flr_SF == True') \
+               .agg(count =('Branch_Number','count'))
+b3_2nd = b3_2nd['Branch_Number'][0]
+
+b3_1 = f"{b3_1st} / {tot_1st}"
+b3_2 = f"{b3_2nd} / {tot_2nd}"
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "1st Floor in Branch 3"
+dict(
+  icon = "house",
+  color = "#F7FEAE",
+  value = b3_1
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "2nd Floor in Branch 3"
+dict(
+  icon = "houses",
+  color = "#F7FEAE",
+  value = b3_2
+)
+```
+
+## Row 
+* Branch 3에 속한 1층 집의 개수는 **454**개이고, 2층 집의 개수는 **252**개이다.
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Distance_m의 전체 평균 계산
+distance_mean = ames['Distance_m'].mean()
+
+# Branch_3의 평균 Distance_m 계산
+branch_3_mean = ames.query('Branch_Number == "Branch_3"')['Distance_m'].mean()
+
+# 막대그래프 그리기
+fig = go.Figure()
+
+fig = fig.add_trace(go.Bar(
+    x=[distance_mean, branch_3_mean],  # x축에 평균값을 설정
+    y=['Distance Mean', 'Branch_3 Mean'],  # y축에 레이블을 설정
+    orientation='h',  # 가로 막대그래프 설정
+    marker=dict(color=['#058092', '#9BD8A4']),  # 막대 색상 설정
+    text=[f"{distance_mean:,.2f}", f"{branch_3_mean:,.2f}"],  # 텍스트로 값 설정
+    textposition='inside',  # 텍스트 위치를 막대 안으로 설정
+    insidetextanchor='middle',  # 텍스트를 막대 가운데 정렬
+    textfont=dict(size=20)  # 텍스트 크기 설정
+))
+
+# 이모지 추가 (각각의 막대 끝에)
+fig = fig.add_annotation(
+    x=distance_mean,  # Distance Mean 막대의 끝에 이모지를 추가
+    y='Distance Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+fig = fig.add_annotation(
+    x=branch_3_mean,  # Branch_3 Mean 막대의 끝에 이모지를 추가
+    y='Branch_3 Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+# 그래프 레이아웃 설정
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Distance from ISU</span>", 'x': 0.5, 'xanchor': 'center'},
+
+    xaxis_title='Distance (m)',
+    yaxis_title='',
+    yaxis=dict(autorange="reversed"),  # y축 순서 뒤집기 (가로 막대그래프일 때)
+    bargap=0.6,  # 막대 사이 간격 설정
+    plot_bgcolor='white',  # 그래프 배경색을 흰색으로 설정
+    paper_bgcolor='white',  # 전체 배경색을 흰색으로 설정
+    margin=dict(t=100)  # 상단 여백을 100으로 설정
+)
+
+# 그래프 보여주기
+fig.show()
+```
+
+## Row
+* IOWA 주립 대학교와 Ames 도시의 주택이 떨어진 거리의 평균은 **5.57km** 이다.
+
+* Branch3 지역의 주택이 대학교와 떨어진 평균 거리는 **8.08km** 이다.
+
+* Ames 도시 주택에 비해 평균 **2.50km** 더 떨어진 지역이다.
+
+
+## {width: 50%}
+![](img/ahyeong_3.png)
+
+## Row 
+* branch_3   
+* 최근에 지어진 집이 많다. 
+* 1층 집을 다수 보유하고 있다. 
+
+
+
+# Branch 4
+
+<!-- Page 5 배너 이미지 -->
+<div class="banner page5">
+  <img src="branch4_banner.png" alt="Branch 4 Banner">
+</div>
+
+## {height : 20%}
+```{python}
+def determine_icon_path(sale_price):
+    if sale_price >= 217450:
+        return "img/008.png"
+    elif 165000 <= sale_price < 217450:
+        return "img/009.png"
+    elif 132000 <= sale_price < 165000:
+        return "img/010.png"
+    else:
+        return "img/011.png"
+
+def branch_map(df, branch_number):
+  branch_data = df[df['Branch_Number'] == branch_number]
+  map_center = [branch_data['Latitude'].mean(), branch_data['Longitude'].mean()]
+  m = folium.Map(location=map_center, tiles="CartoDB positron", zoom_start=12)  
+  univ_icon =  folium.CustomIcon("img/univ1.png", icon_size=(50, 50))
+  popup_text2 = "University of Iowa"
+  folium.Marker(
+      location=[42.0267, -93.6465],
+      popup=folium.Popup(popup_text2, max_width=300),
+      icon=univ_icon).add_to(m)
+  draw = Draw(
+    draw_options={
+        'polyline': True,
+        'polygon': True,
+        'circle': True,
+        'marker': True,
+        'circlemarker': False
+    },
+    edit_options={'edit': True, 'remove': True}
+    ).add_to(m)
+
+  for row in branch_data.itertuples():
+    if row.Distance_m / 60 <= 20 :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      도보 : 약 {round(row.Distance_m / 60,1)} 분<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+      """
+    else :
+      popup_text = f"""
+      가격 : {row.Sale_Price}<br>
+      침실개수 : {row.Bedroom_AbvGr}<br>
+      화장실 개수 : {row.Bath_AbvGr}<br>
+      층수 : {row.Second_Flr_SF}<br>
+      차량 : 약 {round(row.Distance_m / 1000,1)} 분(60km/h)
+
+      """
+      # 조건 들어갈 자리
+    icon_path = determine_icon_path(row.Sale_Price) 
+    icon = folium.CustomIcon(icon_path, icon_size=(100, 80))
+    folium.Marker(
+        location=[row.Latitude, row.Longitude],
+        popup=folium.Popup(popup_text, max_width=300),
+        icon=icon
+    ).add_to(m)
+
+    # 범례 추가
+  legend_html = '''
+    <div style="
+    position: fixed; 
+    top: 10px; right: 10px; width: 160px; height: 140px; 
+    border:2px solid grey; z-index:9999; font-size:12px;
+    background-color:white; padding: 10px;
+    ">
+    <b>Branch_4</b><br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #045275; border-radius: 50%;"></div> price_level_1<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #058092; border-radius: 50%;"></div> price_level_2<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #46AEA0; border-radius: 50%;"></div> price_level_3<br>
+    <div style="display: inline-block; height: 20px; width: 20px; background-color: #F7FEAE; border-radius: 50%;"></div> price_level_4 
+    </div>
+    '''
+  m.get_root().html.add_child(folium.Element(legend_html))
+  return m
+
+branch_map(df,'Branch_4')
+```
+
+## {height:15%}
+## {width: 50%}
+
+```{python}
+ames = pd.read_csv("data/ames.csv")
+branch4 = ames.query("Branch_Number == 'Branch_4'")
+price_min, price_max = ames['Sale_Price'].min(), ames['Sale_Price'].max()
+bin_count = 40
+bin_size = (price_max - price_min) / bin_count
+
+ames_mean = ames['Sale_Price'].mean()
+branch4_mean = branch4['Sale_Price'].mean()
+fig = go.Figure()
+# 첫 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=ames['Sale_Price'],
+      name='Ames',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color='#058092',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 두 번째 데이터프레임의 히스토그램 추가
+fig = fig.add_trace(go.Histogram(
+      x=branch4['Sale_Price'],
+      name='Branch4',
+      opacity=0.6,  # 투명도 설정
+      marker=dict(color= '#F7FEAE',
+          line=dict(color='black', width=0.5)  # 경계선 설정
+      ),
+      xbins=dict(
+          start=price_min,  
+          end=price_max,  
+          size=bin_size
+)))
+
+# 히스토그램을 겹쳐서 표시하기 위해 바 형태를 겹쳐서 그리도록 설정
+fig = fig.update_layout(
+      shapes=[
+          # Ames 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=ames_mean,  # 수직선의 x축 시작점
+              x1=ames_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='blue',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          ),
+          # Branch1 평균값에 대한 수직선
+          dict(
+              type='line',
+              x0=branch4_mean,  # 수직선의 x축 시작점
+              x1=branch4_mean,  # 수직선의 x축 끝점
+              y0=0,  # 수직선의 y축 시작점
+              y1=1,  # 수직선의 y축 끝점 (비율로 설정하여 높이 조절)
+              line=dict(
+                  color='red',
+                  width=1,
+                  dash='dash'
+              ),
+              yref='paper'  # y축을 'paper'로 설정하여 비율로 높이 조절
+          )
+      ],
+      barmode='overlay',
+      plot_bgcolor='white',  # 배경색 흰색으로 설정
+      xaxis=dict(
+          showgrid=False,  # X축 그리드 제거
+          title='Sale Price'  # X축 제목 설정
+      ),
+      yaxis=dict(
+          showgrid=False,  # Y축 그리드 제거
+          title='Frequency'  # Y축 제목 설정
+      ),
+      title={'text': "<span style='color:black;font-weight:bold;'>House Sale Price</span>", 'x': 0.5, 'xanchor': 'center'},
+
+)  
+# 그래프 표시
+fig.show()
+```
+
+
+```{python}
+# 재범주화 함수 정의
+ames = pd.read_csv("data/ames.csv")
+branch4 = ames.query("Branch_Number == 'Branch_4'")
+# 재범주화 함수 정의
+def recondition(condition):
+    if condition in ['Very_Poor', 'Poor', 'Below_Average']:
+        return 'Bad'
+    elif condition == 'Average':
+        return 'Average'
+    elif condition in ['Above_Average', 'Fair', 'Good']:
+        return 'Good'
+    elif condition in ['Very_Good', 'Excellent']:
+        return 'Very Good'
+
+# 데이터프레임의 Overall_Cond 컬럼 재범주화
+ames['Overall_Cond'] = ames['Overall_Cond'].apply(recondition)
+branch4['Overall_Cond'] = branch4['Overall_Cond'].apply(recondition)
+
+import plotly.graph_objects as go
+
+# GitHub Pages에서 제공하는 아이콘 URL
+icons = {
+    'Very Good': 'https://ahyeongj.github.io/sasimi/verygood_house.png',
+    'Good': 'https://ahyeongj.github.io/sasimi/good_house.png',
+    'Average': 'https://ahyeongj.github.io/sasimi/average_house.png',
+    'Bad': 'https://ahyeongj.github.io/sasimi/bad_house.png'
+}
+
+fig = go.Figure()
+
+x_positions = [0.1, 0.4, 0.7, 1.0]
+y_position = 0.5
+
+categories = ['Bad', 'Average', 'Good', 'Very Good']
+
+for i, category in enumerate(categories):
+    branch4_count = branch4[branch4['Overall_Cond'] == category].shape[0]
+    ames_count = ames[ames['Overall_Cond'] == category].shape[0]
+
+    # 카테고리를 위한 trace 추가
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position - 0.3],
+          mode='text',
+          text=[category],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=20)  # 카테고리 텍스트 크기 설정
+    ))
+
+    # 아이콘 이미지를 추가
+    fig = fig.add_layout_image(
+          dict(
+              source=icons[category],  # GitHub Pages URL
+              xref="x", yref="y",
+              x=x_positions[i], y=y_position,
+              sizex=0.2, sizey=0.2,
+              xanchor="center", yanchor="middle"
+          )
+    )
+
+    # 텍스트 표시를 위한 trace 추가
+    branch4_text = f"<b><span style='color:red;'>{branch4_count}</span></b> / {ames_count}"
+    fig = fig.add_trace(go.Scatter(
+          x=[x_positions[i]],
+          y=[y_position + 0.25],
+          mode='text',
+          text=[branch4_text],
+          textposition='bottom center',
+          showlegend=False,
+          textfont=dict(size=18)  # 비율 텍스트 크기 설정
+    ))
+
+# 레이아웃 업데이트: 배경색 흰색, 그리드 라인 제거
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Branch 4 - Overall Condition</span>", 'x': 0.5, 'xanchor': 'center'},
+
+      xaxis=dict(
+          visible=False,
+          showgrid=False,  # X축 그리드 제거
+          zeroline=False,  # X축 제로라인 제거
+          range=[-0.1, 1.2]
+      ),
+      yaxis=dict(
+          visible=False,
+          showgrid=False,  # Y축 그리드 제거
+          zeroline=False  # Y축 제로라인 제거
+      ),
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white', # 전체 배경색 흰색
+      margin=dict(l=30, r=30, t=55, b=25)  # 여백 조정
+)
+
+# 그래프 표시
+fig.show()
+```
+## 
+* Branch4의 경우 Ames의 평균보다 낮은 **125k~142.9k** 가격대의 집을 가장 많이 보유하고 있다.
+
+* **평균(Average)** 수준과 **좋음(Good)** 수준의 Overall Condition을 가진 집이 **176**개와 **172**개로 보유하고 있다. 
+
+## {heihgt:15%}
+## {width: 50%}
+
+```{python}
+#방개수
+all_branch=ames.copy()
+all_branch["Branch_Number"]="Branch_all"
+all_branch=all_branch[["TotRms_AbvGrd","Branch_Number"]].groupby("TotRms_AbvGrd").count()
+all_branch_mean=all_branch["Branch_Number"]/all_branch["Branch_Number"].sum()
+all_branch_mean=all_branch_mean.to_frame()
+# 브랜치 1 
+branch=ames.query('Branch_Number=="Branch_1"')[["TotRms_AbvGrd","Branch_Number"]]
+branch=branch.groupby("TotRms_AbvGrd").count() #count 에서 mean으로 변경
+branch_mean=branch["Branch_Number"]/branch["Branch_Number"].sum()
+branch_mean=branch_mean.to_frame()
+branch_mean["Branch_Number"]=-branch_mean["Branch_Number"]
+#
+df_room_mean=pd.concat([branch_mean,all_branch_mean]).reset_index(drop=False)
+df_room_mean["branch_num"]=["Branch_4"] * len(branch_mean) + ["Branch_all"]* len(all_branch_mean)
+
+# 14번 행 추가 (빈 값)
+new=pd.DataFrame({"TotRms_AbvGrd":[14], "Branch_Number":[0],"branch_num":["Branch_all"]})
+df_room_mean=pd.concat([df_room_mean,new])
+
+# pyramid plot branch 1 과 전체의 방 개수 : mean
+fig = px.bar(df_room_mean, 
+             x='Branch_Number', 
+             y='TotRms_AbvGrd', 
+             color='branch_num',
+             orientation='h', 
+             labels={'Branch_Number': 'Branch_Count', 'TotRms_AbvGrd': 'total_room_num'},
+             color_discrete_map={'Branch_4': '#9BD8A4', 'Branch_all': '#058092'})
+
+fig = fig.update_traces(textfont=dict(size=7))
+
+# x축 값을 원하는 숫자로 수정
+custom_tickvals = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3] 
+custom_ticktext = [0.3, 0.2, 0.1, 0, 0.1, 0.2, 0.3]  
+
+fig = fig.update_layout(
+      title={'text': "<span style='color:black;font-weight:bold;'>Branch4 vs Ames - Room : Ratio</span>", 'x': 0.5, 'xanchor': 'center'},
+
+      xaxis_title='Branch 4 vs Ames',
+      yaxis_title='Room ratio',
+      xaxis=dict(
+          tickvals=custom_tickvals,  # 커스텀 tickvals 설정
+          ticktext=custom_ticktext,
+          range=[-0.33, 0.33],
+          showgrid=True,
+          gridcolor='lightgray'
+      ),
+      yaxis=dict(
+          showticklabels=False  # y축의 범례 숨기기
+      ),
+      barmode='overlay',
+      plot_bgcolor='white',  # 플롯 배경색 흰색
+      paper_bgcolor='white' # 전체 배경색 흰색
+)
+fig = fig.add_scatter(x=[0]*len(df_room_mean), 
+                      y=df_room_mean['TotRms_AbvGrd'], 
+                      mode='text', 
+                      text=df_room_mean['TotRms_AbvGrd'], 
+                      textposition="middle center"
+                      )
+fig.show()
+```
+   
+
+### Row {.tabset}
+```{python}
+#| title: branch_4
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.query('Branch_Number=="Branch_4"')\
+    .groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Aggrnyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Branch4 - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+fig=fig.update_traces(
+    marker=dict(
+        opacity=1
+    ),
+    selector=dict(mode='markers'))
+
+fig.show()
+
+```
+
+
+```{python}
+#| title: Ames
+year_df=ames[["Year_Built","Year_Remod_Add","Branch_Number"]]
+
+def year(x):
+    for i in range(20):
+        if 1870+(10*i) <= x <1880+(10*i):
+            x= 1870+(10*i)
+        else:
+            continue
+    return x
+
+
+year_df["Year_Built"]=year_df["Year_Built"].apply(year)
+year_df["Year_Remod_Add"]=year_df["Year_Remod_Add"].apply(year)
+
+
+year_df=year_df.groupby(["Year_Built","Year_Remod_Add"]).count().reset_index(drop=False)
+
+# scatter plot
+
+fig = px.scatter(year_df, x='Year_Built', y='Year_Remod_Add', size="Branch_Number", color="Branch_Number",
+                 color_continuous_scale=px.colors.sequential.Bluyl, size_max=45)
+
+for x in range(187, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=x*10, y0=1860, x1=x*10, y1=2020,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+for y in range(190, 203):
+    fig = fig.add_shape(
+        type="line",
+        x0=1860, y0=y*10, x1=2020, y1=y*10,
+        line=dict(color="LightGrey", width=1, dash="dot")
+    )
+
+x_custom_tickvals = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+x_custom_ticktext = [1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+y_custom_tickvals = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+y_custom_ticktext = [1950, 1960, 1970, 1980, 1990, 2000, 2010]
+
+fig = fig.update_layout(
+     title={'text': "<span style='color:black;font-weight:bold;'>Ames - Year Built & Year Remodel</span>", 'x': 0.5, 'xanchor': 'center'},
+    xaxis_title='Year Built',
+    yaxis_title='Year Remodel',
+    xaxis=dict(
+        tickvals=x_custom_tickvals,
+        ticktext=x_custom_ticktext,
+        range=[1870, 2015]),
+    yaxis=dict(
+        tickvals=y_custom_tickvals,
+        ticktext=y_custom_ticktext,
+        range=[1945, 2015]),
+    plot_bgcolor='white',  # 플롯 배경색 흰색
+    paper_bgcolor='white',
+    coloraxis_colorbar_title='Count Range'  # 전체 배경색 흰색
+)
+fig=fig.update_traces(
+    marker=dict(
+        opacity=1
+    ),
+    selector=dict(mode='markers'))
+
+fig.show()
+```
+
+## {height: 5%}
+* Ames와 branch_4의 방 개수(비율)를 비교했을 때  
+
+* branch_4의 경우 방이 7 ~ 11 개인 집이 전체보다 많이 보유하고 있음을 알 수 있다. 
+
+* branch_4에 위치한 집들 중 1970년대에 건축되고 1970년대에 리모델링한 집이 **62**개로 가장 많음을 알 수 있다. 
+
+* 비슷하게 2000년대에 건축되고 2000년대에 리모델링한 집이 **61**개로 두번쨰로 많다.
+
+
+
+## {height: 10%}
+```{python}
+tot_1st = ames.query('Second_Flr_SF == False') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_1st = tot_1st['Second_Flr_SF'][0]
+
+tot_2nd = ames.query('Second_Flr_SF == True') \
+               .agg(count =('Second_Flr_SF','count'))
+tot_2nd = tot_2nd['Second_Flr_SF'][0]
+
+
+b4_1st = ames.query('Branch_Number == "Branch_4" & Second_Flr_SF == False') \
+               .agg(count =('Branch_Number','count'))
+b4_1st = b4_1st['Branch_Number'][0]
+
+b4_2nd = ames.query('Branch_Number == "Branch_4" & Second_Flr_SF == True') \
+               .agg(count =('Branch_Number','count'))
+b4_2nd = b4_2nd['Branch_Number'][0]
+
+b4_1 = f"{b4_1st} / {tot_1st}"
+b4_2 = f"{b4_2nd} / {tot_2nd}"
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "1st Floor in Branch 4"
+dict(
+  icon = "house",  
+  color = "#F7FEAE",
+  value = b4_1
+)
+
+```
+
+```{python}
+#| content: valuebox
+#| title: "2nd Floor in Branch 4"
+dict(
+  icon = "houses",  
+  color = "#F7FEAE",
+  value = b4_2
+)
+```
+
+
+## Row {height: 15%}
+* Branch 4에 속한 1층 집의 개수는 **221**개이고, 2층 집의 개수는 **195**개이다. 
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Distance_m의 전체 평균 계산
+distance_mean = ames['Distance_m'].mean()
+
+# Branch_4의 평균 Distance_m 계산
+branch_4_mean = ames.query('Branch_Number == "Branch_4"')['Distance_m'].mean()
+
+# 막대그래프 그리기
+fig = go.Figure()
+
+fig = fig.add_trace(go.Bar(
+    x=[distance_mean, branch_4_mean],  # x축에 평균값을 설정
+    y=['Distance Mean', 'Branch_4 Mean'],  # y축에 레이블을 설정
+    orientation='h',  # 가로 막대그래프 설정
+    marker=dict(color=['#058092', '#9BD8A4']),  # 막대 색상 설정
+    text=[f"{distance_mean:,.2f}", f"{branch_4_mean:,.2f}"],  # 텍스트로 값 설정
+    textposition='inside',  # 텍스트 위치를 막대 안으로 설정
+    insidetextanchor='middle',  # 텍스트를 막대 가운데 정렬
+    textfont=dict(size=20)  # 텍스트 크기 설정
+))
+
+# 이모지 추가 (각각의 막대 끝에)
+fig = fig.add_annotation(
+    x=distance_mean,  # Distance Mean 막대의 끝에 이모지를 추가
+    y='Distance Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+fig = fig.add_annotation(
+    x=branch_4_mean,  # Branch_4 Mean 막대의 끝에 이모지를 추가
+    y='Branch_4 Mean',
+    text='🏃‍♂️',
+    showarrow=False,
+    xanchor='left',
+    yanchor='middle',
+    xshift=30,  # 막대 끝에서 약간 오른쪽에 이모지를 표시
+    font=dict(size=60)  # 이모지 크기 조절
+)
+
+# 그래프 레이아웃 설정
+fig = fig.update_layout(
+    title={'text': "<span style='color:black;font-weight:bold;'>Distance from ISU</span>", 'x': 0.5, 'xanchor': 'center'},
+    yaxis_title='',
+    yaxis=dict(autorange="reversed"),  # y축 순서 뒤집기 (가로 막대그래프일 때)
+    bargap=0.6,  # 막대 사이 간격 설정
+    plot_bgcolor='white',  # 그래프 배경색을 흰색으로 설정
+    paper_bgcolor='white',  # 전체 배경색을 흰색으로 설정
+    margin=dict(t=100)  # 상단 여백을 100으로 설정
+)
+
+# 그래프 보여주기
+fig.show()
+```
+
+## Row
+* IOWA 주립 대학교와 Ames 도시의 주택이 떨어진 거리의 평균은 **5.57km**이다.
+
+* Branch 4 지역의 주택이 대학교와 떨어진 평균 거리는 **5.24km**이다.
+
+* Ames 도시 주택에 비해 평균 **333m** 더 가까운 지역이다.
+
+## {width: 50%}
+![](img/jiwon_4.png)
+
+## Row 
+* branch_4  
+* 집 평가 항목에서 (good, average) 를 고르게 받았다. 
+* 전체 집의 학교로부터 거리의 평균보다 가깝다. 
